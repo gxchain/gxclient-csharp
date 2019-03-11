@@ -73,11 +73,15 @@ namespace gxclient
             }
             Task[] tasks = { this.UpdateHeadBlock(), this.SetRequiredFees() };
             Task.WaitAll(tasks);
+            await Serialize();
             if (broadcast)
             {
-                await RPC.Broadcast<JObject>(SignedTransaction());
+                return await RPC.Broadcast<JObject>(SignedTransaction());
             }
-            return await Task.FromResult<JObject>(JObject.Parse(@"{a:1}"));
+            else
+            {
+                return await Task.FromResult<JObject>(SignedTransaction());
+            }
         }
 
         public JObject SignedTransaction()
