@@ -20,9 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Util\" />
     <Folder Include="Crypto\Extensions\" />
-    <Folder Include="Resources\" />
     <Folder Include="Models\" />
   </ItemGroup>
 
@@ -63,19 +61,5 @@
     <None Update="Resources\typedarray.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\tx_serializer.min.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <IncludeInPackage>true</IncludeInPackage>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\tx_serializer.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <IncludeInPackage>true</IncludeInPackage>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\typedarray.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <IncludeInPackage>true</IncludeInPackage>
-    </EmbeddedResource>
   </ItemGroup>
 </Project>
