@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using gxclient.Interfaces;
 using Newtonsoft.Json;
+using gxclient.Models;
 
 namespace gxclient
 {
@@ -28,6 +29,7 @@ namespace gxclient
 
         private static BIP39 bip39 = new BIP39();
 
+        #region constructor
         /// <summary>
         /// Initializes a new instance of the <see cref="T:gxclient.GXClient"/> class.
         /// </summary>
@@ -41,7 +43,9 @@ namespace gxclient
             this.EntryPoint = EntryPoint;
             this.RPC = new GXRPC(this.EntryPoint);
         }
+        #endregion
 
+        #region keypair api
         /// <summary>
         /// Generates the key pair.
         /// </summary>
@@ -111,6 +115,9 @@ namespace gxclient
                 return false;
             }
         }
+        #endregion
+
+        #region chain api
 
         /// <summary>
         /// Query the specified method with parameter.
@@ -124,9 +131,35 @@ namespace gxclient
             return await RPC.Query<TData>(method, parameter);
         }
 
-        //public async Task<TData> Broadcast<TData>(object transaction)
-        //{
-        //    return await RPC.Broadcast<TData>(transaction);
-        //}
+        /// <summary>
+        /// Broadcast the specified transaction.
+        /// </summary>
+        /// <returns>Transaction</returns>
+        /// <param name="transaction">Transaction.</param>
+        /// <typeparam name="TData">Transaction</typeparam>
+        public async Task<TData> Broadcast<TData>(object transaction)
+        {
+            return await RPC.Broadcast<TData>(transaction);
+        }
+
+        /// <summary>
+        /// GET ChainId of entry point
+        /// </summary>
+        /// <returns>ChainId.</returns>
+        public async Task<string> GetChainId()
+        {
+            return await this.Query<string>("get_chain_id", null);
+        }
+
+        /// <summary>
+        /// Gets dynamic global propertis of current blockchain
+        /// </summary>
+        /// <returns>The dynamic global propertis.</returns>
+        public async Task<DynamicGlobalProperties> GetDynamicGlobalPropertis()
+        {
+            return await this.Query<DynamicGlobalProperties>("get_dynamic_global_properties", null);
+        }
+
+        #endregion
     }
 }
