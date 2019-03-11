@@ -3,19 +3,25 @@ using dotnetstandard_bip39;
 using gxclient.Crypto;
 using Cryptography.ECDSA;
 using System.Linq;
+using System.Threading.Tasks;
+using gxclient.Interfaces;
+using Newtonsoft.Json;
 
 namespace gxclient
 {
     public class KeyPair
     {
+        [JsonProperty("private_key")]
         public string PrivateKey { get; set; }
+        [JsonProperty("public_key")]
         public string PublicKey { get; set; }
+        [JsonProperty("brain_key")]
         public string BrainKey { get; set; }
     }
 
     public class GXClient
     {
-        private string PrivateKey { get; set; }
+        private ISignatureProvider SignatureProvider { get; set; }
         private string AccountName { get; set; }
         private string EntryPoint { get; set; }
         private GXRPC RPC { get; set; }
@@ -25,12 +31,12 @@ namespace gxclient
         /// <summary>
         /// Initializes a new instance of the <see cref="T:gxclient.GXClient"/> class.
         /// </summary>
-        /// <param name="PrivateKey">Private key.</param>
+        /// <param name="signatureProvider">SignatureProvider.</param>
         /// <param name="AccountName">Account name.</param>
         /// <param name="EntryPoint">Entry point.</param>
-        public GXClient(String PrivateKey, String AccountName, String EntryPoint = "https://node1.gxb.io")
+        public GXClient(ISignatureProvider signatureProvider, String AccountName, String EntryPoint = "https://node1.gxb.io")
         {
-            this.PrivateKey = PrivateKey;
+            this.SignatureProvider = signatureProvider;
             this.AccountName = AccountName;
             this.EntryPoint = EntryPoint;
             this.RPC = new GXRPC(this.EntryPoint);
@@ -105,5 +111,22 @@ namespace gxclient
                 return false;
             }
         }
+
+        /// <summary>
+        /// Query the specified method with parameter.
+        /// </summary>
+        /// <returns>Dictionary value</returns>
+        /// <param name="method">Method.</param>
+        /// <param name="parameter">Parameter.</param>
+        /// <typeparam name="TData">The 1st type parameter.</typeparam>
+        public async Task<TData> Query<TData>(string method, object parameter)
+        {
+            return await RPC.Query<TData>(method, parameter);
+        }
+
+        //public async Task<TData> Broadcast<TData>(object transaction)
+        //{
+        //    return await RPC.Broadcast<TData>(transaction);
+        //}
     }
 }
