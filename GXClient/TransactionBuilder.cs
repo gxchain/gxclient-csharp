@@ -13,6 +13,10 @@ namespace gxclient
     {
         public int OperationID { get; set; }
         public JObject Payload { get; set; }
+        public JArray ToObject()
+        {
+            return JArray.FromObject(new object[] { OperationID, Payload });
+        }
     }
 
     public class TransactionBuilder
@@ -65,7 +69,7 @@ namespace gxclient
         /// </summary>
         /// <returns>TransactionResult</returns>
         /// <param name="broadcast">If set to <c>true</c> boradcast the signed transaction to entrypoint.</param>
-        public async Task<JObject> ProcessTransaction(bool broadcast = false)
+        public async Task<Transaction> ProcessTransaction(bool broadcast = false)
         {
             if (this.operations == null || this.operations.Count == 0)
             {
@@ -74,27 +78,39 @@ namespace gxclient
             Task[] tasks = { this.UpdateHeadBlock(), this.SetRequiredFees() };
             Task.WaitAll(tasks);
             await Serialize();
+            await Sign();
             if (broadcast)
             {
-                return await RPC.Broadcast<JObject>(SignedTransaction());
+                return await RPC.Broadcast<Transaction>(SignedTransaction());
             }
             else
             {
-                return await Task.FromResult<JObject>(SignedTransaction());
+                return SignedTransaction();
             }
         }
 
-        public JObject SignedTransaction()
+        public Transaction SignedTransaction()
         {
-            return JObject.FromObject(new
+
+            return new Transaction()
             {
-                expiration,
-                ref_block_num,
-                ref_block_prefix,
-                operations,
-                signatures,
-                extensions
-            });
+                Expiration = expiration,
+                RefBlockNum = ref_block_num,
+                RefBlockPrefix = ref_block_prefix,
+                Operations = operations.Select(o => o.ToObject()).ToArray(),
+                Signatures = signatures.ToArray(),
+                Extensions = extensions.ToArray()
+            };
+
+            //return JObject.FromObject(new
+            //{
+            //    expiration,
+            //    ref_block_num,
+            //    ref_block_prefix,
+            //    operations = operations.Select(o => o.ToObject()),
+            //    signatures,
+            //    extensions
+            //});
         }
 
         public JObject UnSignedTransaction()
@@ -104,16 +120,15 @@ namespace gxclient
                 expiration,
                 ref_block_num,
                 ref_block_prefix,
-                operations,
+                operations = operations.Select(o=>o.ToObject()),
                 extensions
             });
         }
 
-        public async Task<bool> Serialize()
+        public async Task<string> Serialize()
         {
             string tx_hex =  await RPC.Query<string>("get_transaction_hex", new object[] { UnSignedTransaction() });
-            signatures = (await signatureProvider.Sign(this.ChainId, Hex.HexToBytes(tx_hex))).ToList();
-            return await Task.FromResult<bool>(true);
+            return tx_hex;
         }
 
         #endregion
@@ -146,7 +161,7 @@ namespace gxclient
                     }
                 }
             }
-            return await Task.FromResult<bool>(true);
+            return true;
         }
 
         private void SetFee(JObject fee, JObject operation)
@@ -157,7 +172,9 @@ namespace gxclient
 
         private async Task<bool> Sign()
         {
-            return await Task.FromResult<bool>(true);
+            var tx_hex = await Serialize();
+            signatures = (await signatureProvider.Sign(this.ChainId, Hex.HexToBytes(tx_hex))).ToList();
+            return true;
         }
 
         #endregion
