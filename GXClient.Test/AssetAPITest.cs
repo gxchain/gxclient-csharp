@@ -10,49 +10,25 @@ using System.Collections.Generic;
 namespace GXClient.Test
 {
     [TestClass]
-    public class AccountAPITest
+    public class AssetAPITest
     {
         private readonly gxclient.GXClient Client = new gxclient.GXClient(null, "", "https://testnet.gxchain.org");
 
         [TestMethod]
-        public async Task GetAccount()
+        public async Task GetAsset()
         {
-            string accountName = "gxb122";
-            var account = await Client.GetAccount(accountName);
-            Console.WriteLine(JsonConvert.SerializeObject(account, Formatting.Indented));
-            Assert.AreEqual(account.Name, accountName);
+            string assetName = "GXC";
+            var result = await Client.GetAsset(assetName);
+            Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+            Assert.AreEqual(result.Symbol, assetName);
         }
 
         [TestMethod]
-        public async Task GetAccounts()
+        public async Task GetAssets()
         {
-            string[] accountNames = new string[] { "gxb122", "gxb121" };
-            var account = await Client.GetAccounts(accountNames);
-            Console.WriteLine(JsonConvert.SerializeObject(account, Formatting.Indented));
-        }
-
-        [TestMethod]
-        public async Task GetVoteIDs()
-        {
-            string[] accountNames = new string[] { "bob", "bao" };
-            var account = await Client.GetVoteIdsByAccounts(accountNames);
-            Console.WriteLine(JsonConvert.SerializeObject(account, Formatting.Indented));
-        }
-
-        [TestMethod]
-        public async Task GetAccountBalances()
-        {
-            string accountName = "gxb122";
-            var accountBalances = await Client.GetAccountBalances(accountName);
-            Console.WriteLine(JsonConvert.SerializeObject(accountBalances, Formatting.Indented));
-        }
-
-        [TestMethod]
-        public async Task GetAccountByPublicKey()
-        {
-            string publicKey = "GXC69R784krfXRuFYMuNwhTTnMGPMuCSSng3WPssL6vrXRqTYCLT4";
-            var accounts = await Client.GetAccountByPublicKey(publicKey);
-            Console.WriteLine(JsonConvert.SerializeObject(accounts, Formatting.Indented));
+            string[] assets = new string[] { "GXC", "PPS" };
+            var result = await Client.GetAssets(assets);
+            Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
         }
     }
 }
