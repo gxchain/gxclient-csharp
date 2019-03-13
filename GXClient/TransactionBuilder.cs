@@ -6,6 +6,7 @@ using gxclient.Models;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using gxclient.Crypto;
+using Newtonsoft.Json;
 
 namespace gxclient
 {
@@ -19,6 +20,16 @@ namespace gxclient
         }
     }
 
+    public class TransactionResult
+    {
+        [JsonProperty("block_num")]
+        public long BlockNum { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        [JsonProperty("trx")]
+        public Transaction Trx { get; set; }
+    }
+
     public class TransactionBuilder
     {
         #region transaction properties
@@ -30,9 +41,9 @@ namespace gxclient
 
         public List<Operation> operations;
 
-        public List<object> extensions;
+        public object[] extensions = new object[] { };
 
-        public List<string> signatures;
+        public string[] signatures = new string[] { };
         #endregion
 
         private readonly ISignatureProvider signatureProvider;
@@ -69,7 +80,7 @@ namespace gxclient
         /// </summary>
         /// <returns>TransactionResult</returns>
         /// <param name="broadcast">If set to <c>true</c> boradcast the signed transaction to entrypoint.</param>
-        public async Task<Transaction> ProcessTransaction(bool broadcast = false)
+        public async Task<TransactionResult> ProcessTransaction(bool broadcast = false)
         {
             if (this.operations == null || this.operations.Count == 0)
             {
@@ -77,29 +88,27 @@ namespace gxclient
             }
             Task[] tasks = { this.UpdateHeadBlock(), this.SetRequiredFees() };
             Task.WaitAll(tasks);
-            await Serialize();
             await Sign();
             if (broadcast)
             {
-                return await RPC.Broadcast<Transaction>(SignedTransaction());
+                return await RPC.Broadcast<TransactionResult>(SignedTransaction());
             }
             else
             {
-                return SignedTransaction();
+                return new TransactionResult() { Trx = SignedTransaction() };
             }
         }
 
         public Transaction SignedTransaction()
         {
-
             return new Transaction()
             {
                 Expiration = expiration,
                 RefBlockNum = ref_block_num,
                 RefBlockPrefix = ref_block_prefix,
                 Operations = operations.Select(o => o.ToObject()).ToArray(),
-                Signatures = signatures.ToArray(),
-                Extensions = extensions.ToArray()
+                Signatures = signatures,
+                Extensions = extensions
             };
 
             //return JObject.FromObject(new
@@ -113,21 +122,10 @@ namespace gxclient
             //});
         }
 
-        public JObject UnSignedTransaction()
-        {
-            return JObject.FromObject(new
-            {
-                expiration,
-                ref_block_num,
-                ref_block_prefix,
-                operations = operations.Select(o=>o.ToObject()),
-                extensions
-            });
-        }
-
         public async Task<string> Serialize()
         {
-            string tx_hex =  await RPC.Query<string>("get_transaction_hex", new object[] { UnSignedTransaction() });
+            string tx_hex =  await RPC.Query<string>("get_transaction_hex", new object[] { SignedTransaction() });
+            tx_hex = tx_hex.Substring(0, tx_hex.Length - 2); // remove empty signature part
             return tx_hex;
         }
 
@@ -139,15 +137,15 @@ namespace gxclient
             DynamicGlobalProperties dgp = await RPC.Query<DynamicGlobalProperties>("get_dynamic_global_properties", null);
             this.expiration = dgp.Time.AddSeconds(DEFAULT_EXPIRE_SECONDS);
             this.ref_block_num = (UInt16)(dgp.HeadBlockNumber & 0xFFFF);
-            string ref_block_prefix_str = dgp.HeadBlockId.Substring(10, 2) + dgp.HeadBlockId.Substring(8, 2) + dgp.HeadBlockId.Substring(6, 2) + dgp.HeadBlockId.Substring(4, 2);
-            this.ref_block_prefix = uint.Parse(ref_block_prefix_str, System.Globalization.NumberStyles.HexNumber);
+            string ref_block_prefix_str = dgp.HeadBlockId.Substring(14, 2) + dgp.HeadBlockId.Substring(12, 2) + dgp.HeadBlockId.Substring(10, 2) + dgp.HeadBlockId.Substring(8, 2);
+            this.ref_block_prefix = UInt32.Parse(ref_block_prefix_str, System.Globalization.NumberStyles.HexNumber);
             return await Task.FromResult<bool>(true);
         }
 
         private async Task<bool> SetRequiredFees()
         {
             string fee_asset_id = this.operations[0].Payload["fee"]["asset_id"].ToString();
-            List<JObject> fees =  await RPC.Query<List<JObject>>("get_required_fees", new object[] { this.operations, fee_asset_id });
+            List<JObject> fees =  await RPC.Query<List<JObject>>("get_required_fees", new object[] { this.operations.Select(o=>o.ToObject()).ToArray(), fee_asset_id });
             int index = 0;
             for(int i = 0; i < this.operations.Count; ++i)
             {
@@ -166,14 +164,14 @@ namespace gxclient
 
         private void SetFee(JObject fee, JObject operation)
         {
-            operation["fee"]["asset_id"] = fee["fee"]["asset_id"].ToString();
-            operation["fee"]["amount"] = fee["fee"]["amount"].ToObject<long>();
+            operation["fee"]["asset_id"] = fee["asset_id"].ToString();
+            operation["fee"]["amount"] = fee["amount"].ToObject<long>();
         }
 
         private async Task<bool> Sign()
         {
             var tx_hex = await Serialize();
-            signatures = (await signatureProvider.Sign(this.ChainId, Hex.HexToBytes(tx_hex))).ToList();
+            signatures = (await signatureProvider.Sign(this.ChainId, Hex.HexToBytes(tx_hex))).ToArray();
             return true;
         }
 

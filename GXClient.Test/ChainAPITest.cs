@@ -5,13 +5,14 @@ using gxclient;
 using System.Threading.Tasks;
 using gxclient.Models;
 using Newtonsoft.Json;
+using gxclient.Implements;
 
 namespace GXClient.Test
 {
     [TestClass]
     public class ChainAPITest
     {
-        private readonly gxclient.GXClient Client = new gxclient.GXClient(null, "", "https://testnet.gxchain.org");
+        private readonly gxclient.GXClient Client = new gxclient.GXClient(new DefaultSignatureProvider("5J7Yu8zZD5oV9Ex7npmsT3XBbpSdPZPBKBzLLQnXz5JHQVQVfNT"), "gxb122", "https://testnet.gxchain.org");
 
         [TestMethod]
         public async Task GetChainID()
@@ -47,6 +48,20 @@ namespace GXClient.Test
         {
             var result = await Client.GetBlock(12022594);
             Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+        }
+
+        [TestMethod]
+        public async Task Vote()
+        {
+            try
+            {
+                var transaction = await Client.Vote(new string[] { "w1", "w2" }, null, "GXC", true);
+                Console.WriteLine(JsonConvert.SerializeObject(transaction, Formatting.Indented));
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(JsonConvert.SerializeObject(ex, Formatting.Indented));
+            }
         }
     }
 }

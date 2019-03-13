@@ -17,9 +17,19 @@ namespace gxclient.Implements
             this.PrivateKeys = privateKeys;
         }
 
+        public DefaultSignatureProvider(string[] privateKeys)
+        {
+            this.PrivateKeys = privateKeys.Select(PrivateKey.FromWif).ToArray();
+        }
+
         public DefaultSignatureProvider(PrivateKey privateKey)
         {
             this.PrivateKeys = new PrivateKey[] { privateKey };
+        }
+
+        public DefaultSignatureProvider(string privateKey)
+        {
+            this.PrivateKeys = new PrivateKey[] { PrivateKey.FromWif(privateKey) };
         }
 
         public Task<IEnumerable<string>> Sign(string chainId, byte[] serializedTransaction)

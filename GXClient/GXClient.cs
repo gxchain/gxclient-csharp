@@ -1,16 +1,13 @@
 ﻿using System;
-using dotnetstandard_bip39;
-using gxclient.Crypto;
-using Cryptography.ECDSA;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using dotnetstandard_bip39;
+using gxclient.Crypto;
+using gxclient.Implements;
 using gxclient.Interfaces;
-using Newtonsoft.Json;
 using gxclient.Models;
 using Newtonsoft.Json.Linq;
-using System.Collections;
-using System.Collections.Generic;
-using gxclient.Implements;
 
 namespace gxclient
 {
@@ -237,7 +234,7 @@ namespace gxclient
             return voteIDs;
         }
 
-        public async Task<Transaction> Vote(string[] accounts, string proxyAccount, string fee_asset = "GXC", bool broadcast = false)
+        public async Task<TransactionResult> Vote(string[] accounts, string proxyAccount, string fee_asset = "GXC", bool broadcast = false)
         {
             Account myAccount = await GetAccount(this.AccountName);
             string[] voteIds = (await GetVoteIdsByAccounts(accounts)).ToArray();
