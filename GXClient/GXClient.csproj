@@ -3,6 +3,17 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>gxclient</RootNamespace>
+    <PackOnBuild>true</PackOnBuild>
+    <PackageId>GXClient</PackageId>
+    <Authors>lanhaoxiang</Authors>
+    <Owners>davidlan</Owners>
+    <PackageProjectUrl>https://github.com/gxchain/gxclient-csharp</PackageProjectUrl>
+    <Title>GXClient</Title>
+    <Description>A client to interact with gxchain implemented in C#</Description>
+    <PackageVersion>1.0</PackageVersion>
+    <PackageIconUrl>https://www.gxchain.org/gxchain.org.png</PackageIconUrl>
+    <PackageReleaseNotes>A client to interact with gxchain implemented in C#</PackageReleaseNotes>
+    <Summary>A client to interact with gxchain implemented in C#</Summary>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -13,6 +24,7 @@
     <PackageReference Include="Cryptography.ECDSA.Secp256K1" Version="1.1.2" />
     <PackageReference Include="dotnetstandard-bip39" Version="1.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="NuGet.Build.Packaging" Version="0.2.0" />
   </ItemGroup>
 
   <ItemGroup>
