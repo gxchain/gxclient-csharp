@@ -1,5 +1,8 @@
 # gxclient-csharp
 A client to interact with gxchain implemented in C#
+``` bash
+Install-Package GXClient
+```
 <p>
  <a href='javascript:;'>
    <img width="300px" src='https://raw.githubusercontent.com/gxchain/gxips/master/assets/images/task-gxclient.png'/>
