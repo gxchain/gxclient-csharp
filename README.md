@@ -21,7 +21,7 @@ A client to interact with gxchain implemented in C#
 - [x] [Faucet API](#faucet-api)
 - [x] [Account API](#account-api)
 - [x] [Asset API](#asset-api)
-- [ ] [Contract API]
+- [ ] [Contract API](#contract-api)
 
 ## Constructors
 ```c#
@@ -153,3 +153,54 @@ public async Task<TransactionResult> Transfer(string to, string memo, string amo
 /// <param name="faucetUrl">Faucet URL.</param>
 public async Task<Transaction> RegisterAccount(string accountName, string activeKey, string ownerKey, string memoKey, string faucetUrl = "https://opengateway.gxb.io")
 ```
+## Account API
+```c#
+/// <summary>
+/// Get account by account name
+/// </summary>
+/// <returns>Account</returns>
+/// <param name="accountName">AccountName</param>
+public async Task<Account> GetAccount(string accountName)
+
+/// <summary>
+/// Get a list of accounts by <paramref name="accountNames"/>
+/// </summary>
+/// <returns>accounts.</returns>
+/// <param name="accountNames">Account names.</param>
+public async Task<IEnumerable<Account>> GetAccounts(string[] accountNames)
+
+
+/// <summary>
+/// Get account balances by <paramref name="accountName"/>.
+/// </summary>
+/// <returns>The account balances.</returns>
+/// <param name="accountName">Account name.</param>
+public async Task<IEnumerable<AssetAmount>> GetAccountBalances(string accountName)
+
+/// <summary>
+/// Get account by public key.
+/// </summary>
+/// <returns>A list of account id</returns>
+/// <param name="publicKey">Publickey.</param>
+public async Task<IEnumerable<string>> GetAccountByPublicKey(string publicKey)
+```
+
+## Asset API
+```c#
+/// <summary>
+/// Get a list of asset by asset symbols
+/// </summary>
+/// <returns>List of asset.</returns>
+/// <param name="assets">Asset symbols.</param>
+public async Task<IEnumerable<Asset>> GetAssets(string[] assets)
+
+/// <summary>
+/// Get asset by symbol
+/// </summary>
+/// <returns>The asset.</returns>
+/// <param name="asset">Asset symbol.</param>
+public async Task<Asset> GetAsset(string asset)
+```
+
+## Contract API
+Comming soon
