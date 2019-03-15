@@ -12,7 +12,7 @@ namespace GXClient.Test
     [TestClass]
     public class AccountAPITest
     {
-        private readonly gxclient.GXClient Client = new gxclient.GXClient(null, "", "https://testnet.gxchain.org");
+        private readonly gxclient.GXClient Client = new gxclient.GXClient(null, null, "", "https://testnet.gxchain.org");
 
         [TestMethod]
         public async Task GetAccount()

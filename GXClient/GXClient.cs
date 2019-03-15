@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using dotnetstandard_bip39;
 using gxclient.Crypto;
@@ -14,6 +15,7 @@ namespace gxclient
     public class GXClient
     {
         private ISignatureProvider SignatureProvider { get; set; }
+        private IMemoProvider MemoProvider { get; set; }
         private string AccountName { get; set; }
         private string EntryPoint { get; set; }
         private GXRPC RPC { get; set; }
@@ -28,12 +30,14 @@ namespace gxclient
         /// <summary>
         /// Initializes a new instance of the <see cref="T:gxclient.GXClient"/> class.
         /// </summary>
-        /// <param name="signatureProvider">SignatureProvider.</param>
+        /// <param name="signatureProvider">Signature provider.</param>
+        /// /// <param name="memoProvider">Memo generator provider.</param>
         /// <param name="AccountName">Account name.</param>
         /// <param name="EntryPoint">Entry point.</param>
-        public GXClient(ISignatureProvider signatureProvider, String AccountName, String EntryPoint = "https://node1.gxb.io")
+        public GXClient(ISignatureProvider signatureProvider, IMemoProvider memoProvider, String AccountName, String EntryPoint = "https://node1.gxb.io")
         {
             this.SignatureProvider = signatureProvider;
+            this.MemoProvider = memoProvider;
             this.AccountName = AccountName;
             this.EntryPoint = EntryPoint;
             this.RPC = new GXRPC(this.EntryPoint);
@@ -234,15 +238,16 @@ namespace gxclient
             return voteIDs;
         }
 
-        public async Task<TransactionResult> Vote(string[] accounts, string proxyAccount, string fee_asset = "GXC", bool broadcast = false)
+        public async Task<TransactionResult> Vote(string[] accounts, string proxyAccount, string feeAsset = "GXC", bool broadcast = false)
         {
             Account myAccount = await GetAccount(this.AccountName);
             string[] voteIds = (await GetVoteIdsByAccounts(accounts)).ToArray();
             var transactionBuilder = await CreateTransactionBuilder();
-            var fee_asset_id = (await GetAsset(fee_asset)).Id;
-            var proxy_account_id = string.IsNullOrEmpty(proxyAccount) ? "1.2.5" : (await GetAccount(proxyAccount)).Id;
-            var newOptions = myAccount.Options;
+            var feeAssetId = (await GetAsset(feeAsset)).Id;
             var globalParams = await GetObject("2.0.0");
+
+            var votingAccount = string.IsNullOrEmpty(proxyAccount) ? "1.2.5" : (await GetAccount(proxyAccount)).Id;
+            var newOptions = myAccount.Options;
             int maximumCommitteeCount = globalParams["parameters"]["maximum_committee_count"].ToObject<int>();
             int maximumWitnessCount = globalParams["parameters"]["maximum_witness_count"].ToObject<int>();
 
@@ -263,19 +268,76 @@ namespace gxclient
             }
             newOptions.NumWitness = Math.Min(numWitness, maximumWitnessCount);
             newOptions.NumCommittee = Math.Min(numCommitee, maximumCommitteeCount);
-            newOptions.VotingAccount = proxy_account_id;
+            newOptions.VotingAccount = votingAccount;
 
             transactionBuilder.AddOperation(new Operation()
             {
                 OperationID = 6,
                 Payload = JObject.FromObject(new
                 {
-                    fee =new { asset_id = fee_asset_id, amount = 0 },
+                    fee =new { asset_id = feeAssetId, amount = 0 },
                     account = myAccount.Id,
                     new_options = newOptions
                 })
             });
 
+            return await transactionBuilder.ProcessTransaction(broadcast);
+        }
+        
+        public async Task<TransactionResult> Transfer(string to, string memo, string amountAsset, string feeAsset="GXC",bool broadcast = false)
+        {
+            var toAccount = await GetAccount(to);
+            var fromAccount = await GetAccount(this.AccountName);
+            string[] amountAssetArr = amountAsset.Split(' ');
+            if (amountAssetArr.Length != 2)
+            {
+                throw new Exception("invali amount asset, a valid example is \"100 GXC\"");
+            }
+            UInt64 amount = UInt64.Parse(amountAssetArr[0]);
+            var asset = (await GetAsset(amountAssetArr[1]));
+            var feeAssetId = string.IsNullOrEmpty(feeAsset) ? asset.Id : (await GetAsset(feeAsset)).Id;
+
+            Operation op = null;
+            if (!String.IsNullOrEmpty(memo))
+            {
+                using(RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider())
+                {
+                    byte[] randomBytes = new byte[sizeof(UInt64)];
+                    rng.GetBytes(randomBytes);
+                    UInt64 nonce = UInt64.Parse(Hex.BytesToHex(randomBytes), System.Globalization.NumberStyles.HexNumber);
+                    Memo m = MemoProvider.GenerateMemo(toAccount.Options.MemoKey, nonce, memo);
+                    op = new Operation()
+                    {
+                        OperationID = 0,
+                        Payload = JObject.FromObject(new
+                        {
+                            fee = new { asset_id = feeAssetId, amount = 0 },
+                            from = fromAccount.Id,
+                            to = toAccount.Id,
+                            amount = new { asset_id = asset.Id, amount = amount * Math.Pow(10,asset.Precision) },
+                            memo = m,
+                            extensions = new object[] { }
+                        })
+                    };
+                }
+            }
+            else
+            {
+                op = new Operation()
+                {
+                    OperationID = 0,
+                    Payload = JObject.FromObject(new
+                    {
+                        fee = new { asset_id = feeAssetId, amount = 0 },
+                        from = fromAccount.Id,
+                        to = toAccount.Id,
+                        amount = new { asset_id = asset.Id, amount = amount * Math.Pow(10, asset.Precision) },
+                        extensions = new object[] { }
+                    })
+                };
+            }
+            TransactionBuilder transactionBuilder = await CreateTransactionBuilder();
+            transactionBuilder.AddOperation(op);
             return await transactionBuilder.ProcessTransaction(broadcast);
         }
 
