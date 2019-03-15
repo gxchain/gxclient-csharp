@@ -1,4 +1,4 @@
-# gxclient
+# gxclient-csharp
 A client to interact with gxchain implemented in C#
 <p>
  <a href='javascript:;'>
