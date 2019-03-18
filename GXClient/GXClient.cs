@@ -8,6 +8,7 @@ using gxclient.Crypto;
 using gxclient.Implements;
 using gxclient.Interfaces;
 using gxclient.Models;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace gxclient
@@ -238,6 +239,14 @@ namespace gxclient
             return voteIDs;
         }
 
+        /// <summary>
+        /// Vote for specified accounts, setup proxyAccount
+        /// </summary>
+        /// <returns>Transaction result</returns>
+        /// <param name="accounts">Accounts.</param>
+        /// <param name="proxyAccount">Proxy account.</param>
+        /// <param name="feeAsset">Fee asset.</param>
+        /// <param name="broadcast">If set to <c>true</c> broadcast.</param>
         public async Task<TransactionResult> Vote(string[] accounts, string proxyAccount, string feeAsset = "GXC", bool broadcast = false)
         {
             Account myAccount = await GetAccount(this.AccountName);
@@ -283,7 +292,16 @@ namespace gxclient
 
             return await transactionBuilder.ProcessTransaction(broadcast);
         }
-        
+
+        /// <summary>
+        /// Transfer a amount of assets to specified account with specified memo
+        /// </summary>
+        /// <returns>The transfer.</returns>
+        /// <param name="to">To.</param>
+        /// <param name="memo">Memo.</param>
+        /// <param name="amountAsset">Amount asset.</param>
+        /// <param name="feeAsset">Fee asset.</param>
+        /// <param name="broadcast">If set to <c>true</c> broadcast.</param>
         public async Task<TransactionResult> Transfer(string to, string memo, string amountAsset, string feeAsset="GXC",bool broadcast = false)
         {
             var toAccount = await GetAccount(to);
@@ -291,7 +309,7 @@ namespace gxclient
             string[] amountAssetArr = amountAsset.Split(' ');
             if (amountAssetArr.Length != 2)
             {
-                throw new Exception("invali amount asset, a valid example is \"100 GXC\"");
+                throw new Exception("invalid amount asset, a valid example is \"100 GXC\"");
             }
             UInt64 amount = UInt64.Parse(amountAssetArr[0]);
             var asset = (await GetAsset(amountAssetArr[1]));
@@ -422,6 +440,137 @@ namespace gxclient
         {
             var assets = await GetAssets(new string[] { asset });
             return assets.First();
+        }
+
+        #endregion
+
+        #region contract apis
+
+        /// <summary>
+        /// Gets contract abi by <paramref name="contractName"/>
+        /// </summary>
+        /// <returns>The contract abi.</returns>
+        /// <param name="contractName">Contract name.</param>
+        public async Task<Abi> GetContractABI(string contractName)
+        {
+            Account account = await this.GetAccount(contractName);
+            if (account != null)
+            {
+                return account.Abi;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets contrct tables by <paramref name="contractName"/>.
+        /// </summary>
+        /// <returns>The contrct tables.</returns>
+        /// <param name="contractName">Contract name.</param>
+        public async Task<IEnumerable<Table>> GetContrctTables(string contractName)
+        {
+            Account account = await this.GetAccount(contractName);
+            if (account != null)
+            {
+                return account.Abi.Tables;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets contract table objects
+        /// </summary>
+        /// <returns>The table objects.</returns>
+        /// <param name="contractName">Contract name.</param>
+        /// <param name="tableName">Table name.</param>
+        /// <param name="start">Start.</param>
+        /// <param name="limit">Limit.</param>
+        /// <param name="reverse">If set to <c>true</c> reverse.</param>
+        public async Task<IEnumerable<JObject>> GetTableObjects(string contractName,string tableName,UInt64 start, UInt64 limit, bool reverse)
+        {
+            return await this.Query<IJEnumerable<JObject>>("get_table_rows_ex", new object[] { contractName, tableName,  new {
+                lower_bound = start,
+                upper_bound = -1,
+                limit,
+                reverse
+            } });
+        }
+
+        /// <summary>
+        /// Serializes the contract parameters.
+        /// </summary>
+        /// <returns>Serialized result.</returns>
+        /// <param name="contractName">Contract name.</param>
+        /// <param name="method">Method name.</param>
+        /// <param name="parameters">Parameters.</param>
+        public async Task<string> SerializeContractParams(string contractName, string method, object parameters)
+        {
+            return await this.Query<string>("serialize_contract_call_args", new object[] { contractName, method, JsonConvert.SerializeObject(parameters) });
+        }
+
+        /// <summary>
+        /// Call contract with indicated <paramref name="method"/> and <paramref name="parameters"/>.
+        /// </summary>
+        /// <returns>The contract.</returns>
+        /// <param name="contractName">Contract name.</param>
+        /// <param name="method">Method name.</param>
+        /// <param name="parameters">Parameters.</param>
+        /// <param name="amountAsset">Amount asset, eg. "100 GXC".</param>
+        /// <param name="feeAsset">Fee asset symbol, eg. "GXC".</param>
+        /// <param name="broadcast">If set to <c>true</c> broadcast.</param>
+        public async Task<TransactionResult> CallContract(string contractName, string method, object parameters, string amountAsset, string feeAsset="GXC", bool broadcast= false)
+        {
+            Account contract = await GetAccount(contractName);
+            Account fromAccount = await GetAccount(this.AccountName);
+            string[] amountAssetArr = null;
+            UInt64 amount = 0L;
+            Asset asset = null;
+            string feeAssetSymbol = feeAsset;
+            if (string.IsNullOrEmpty(amountAsset))
+            {
+                amountAssetArr = amountAsset.Split(' ');
+                if (amountAssetArr.Length != 2)
+                {
+                    throw new Exception("invalid amount asset, a valid example is \"100 GXC\"");
+                }
+                amount = UInt64.Parse(amountAssetArr[0]);
+                asset = (await GetAsset(amountAssetArr[1]));
+            }
+            var feeAssetId = string.IsNullOrEmpty(feeAsset) ? (asset==null?"1.3.1":asset.Id) : (await GetAsset(feeAsset)).Id;
+            TransactionBuilder transactionBuilder = await CreateTransactionBuilder();
+            Operation op = null;
+            if(asset == null)
+            {
+                op = new Operation()
+                {
+                    OperationID = 75,
+                    Payload = JObject.FromObject(new
+                    {
+                        fee = new { asset_id = feeAssetId, amount = 0 },
+                        account = fromAccount.Id,
+                        contract_id = contract.Id,
+                        method_name = method,
+                        data = await SerializeContractParams(contractName, method, parameters)
+                    })
+                };
+            }
+            else
+            {
+                op = new Operation()
+                {
+                    OperationID = 75,
+                    Payload = JObject.FromObject(new
+                    {
+                        fee = new { asset_id = feeAssetId, amount = 0 },
+                        amount = new {asset_id = asset.Id, amount},
+                        account = fromAccount.Id,
+                        contract_id = contract.Id,
+                        method_name = method,
+                        data = await SerializeContractParams(contractName, method, parameters)
+                    })
+                };
+            }
+            transactionBuilder.AddOperation(op);
+            return await transactionBuilder.ProcessTransaction(broadcast);
         }
 
         #endregion

@@ -103,13 +103,31 @@ namespace gxclient.Models
         public object[] Actions { get; set; }
 
         [JsonProperty("tables")]
-        public object[] Tables { get; set; }
+        public Table[] Tables { get; set; }
 
         [JsonProperty("error_messages")]
         public object[] ErrorMessages { get; set; }
 
         [JsonProperty("abi_extensions")]
         public object[] AbiExtensions { get; set; }
+    }
+
+    public partial class Table
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("index_type")]
+        public string IndexType { get; set; }
+
+        [JsonProperty("key_names")]
+        public string[] KeyNames { get; set; }
+
+        [JsonProperty("key_types")]
+        public string[] KeyTypes { get; set; }
+
+        [JsonProperty("type")]
+        public string Type { get; set; }
     }
 
     public partial class Active
