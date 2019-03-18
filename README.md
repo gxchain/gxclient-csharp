@@ -24,7 +24,7 @@ Install-Package GXClient
 - [x] [Faucet API](#faucet-api)
 - [x] [Account API](#account-api)
 - [x] [Asset API](#asset-api)
-- [ ] [Contract API](#contract-api)
+- [x] [Contract API](#contract-api)
 
 ## Constructors
 ```c#
@@ -206,4 +206,50 @@ public async Task<Asset> GetAsset(string asset)
 ```
 
 ## Contract API
-Comming soon
+```c#
+/// <summary>
+/// Gets contract abi by <paramref name="contractName"/>
+/// </summary>
+/// <returns>The contract abi.</returns>
+/// <param name="contractName">Contract name.</param>
+public async Task<Abi> GetContractABI(string contractName)
+
+/// <summary>
+/// Gets contrct tables by <paramref name="contractName"/>.
+/// </summary>
+/// <returns>The contrct tables.</returns>
+/// <param name="contractName">Contract name.</param>
+public async Task<IEnumerable<Table>> GetContrctTables(string contractName)
+
+/// <summary>
+/// Gets contract table objects
+/// </summary>
+/// <returns>The table objects.</returns>
+/// <param name="contractName">Contract name.</param>
+/// <param name="tableName">Table name.</param>
+/// <param name="start">Start.</param>
+/// <param name="limit">Limit.</param>
+/// <param name="reverse">If set to <c>true</c> reverse.</param>
+public async Task<JObject> GetTableObjects(string contractName,string tableName,UInt64 start, UInt64 limit, bool reverse)
+
+/// <summary>
+/// Serializes the contract parameters.
+/// </summary>
+/// <returns>Serialized result.</returns>
+/// <param name="contractName">Contract name.</param>
+/// <param name="method">Method name.</param>
+/// <param name="parameters">Parameters.</param>
+public async Task<string> SerializeContractParams(string contractName, string method, object parameters)
+
+/// <summary>
+/// Call contract with indicated <paramref name="method"/> and <paramref name="parameters"/>.
+/// </summary>
+/// <returns>The contract.</returns>
+/// <param name="contractName">Contract name.</param>
+/// <param name="method">Method name.</param>
+/// <param name="parameters">Parameters.</param>
+/// <param name="amountAsset">Amount asset, eg. "100 GXC".</param>
+/// <param name="feeAsset">Fee asset symbol, eg. "GXC".</param>
+/// <param name="broadcast">If set to <c>true</c> broadcast.</param>
+public async Task<TransactionResult> CallContract(string contractName, string method, object parameters, string amountAsset, string feeAsset="GXC", bool broadcast= false)
+```
