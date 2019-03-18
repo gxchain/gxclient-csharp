@@ -332,7 +332,7 @@ namespace gxclient
                             fee = new { asset_id = feeAssetId, amount = 0 },
                             from = fromAccount.Id,
                             to = toAccount.Id,
-                            amount = new { asset_id = asset.Id, amount = amount * Math.Pow(10,asset.Precision) },
+                            amount = new { asset_id = asset.Id, amount = (UInt32)(amount * Math.Pow(10,asset.Precision)) },
                             memo = m,
                             extensions = new object[] { }
                         })
@@ -349,7 +349,7 @@ namespace gxclient
                         fee = new { asset_id = feeAssetId, amount = 0 },
                         from = fromAccount.Id,
                         to = toAccount.Id,
-                        amount = new { asset_id = asset.Id, amount = amount * Math.Pow(10, asset.Precision) },
+                        amount = new { asset_id = asset.Id, amount = (UInt32)(amount * Math.Pow(10, asset.Precision)) },
                         extensions = new object[] { }
                     })
                 };
@@ -485,9 +485,9 @@ namespace gxclient
         /// <param name="start">Start.</param>
         /// <param name="limit">Limit.</param>
         /// <param name="reverse">If set to <c>true</c> reverse.</param>
-        public async Task<IEnumerable<JObject>> GetTableObjects(string contractName,string tableName,UInt64 start, UInt64 limit, bool reverse)
+        public async Task<JObject> GetTableObjects(string contractName,string tableName,UInt64 start, UInt64 limit, bool reverse)
         {
-            return await this.Query<IJEnumerable<JObject>>("get_table_rows_ex", new object[] { contractName, tableName,  new {
+            return await this.Query<JObject>("get_table_rows_ex", new object[] { contractName, tableName,  new {
                 lower_bound = start,
                 upper_bound = -1,
                 limit,
@@ -525,7 +525,7 @@ namespace gxclient
             UInt64 amount = 0L;
             Asset asset = null;
             string feeAssetSymbol = feeAsset;
-            if (string.IsNullOrEmpty(amountAsset))
+            if (!string.IsNullOrEmpty(amountAsset))
             {
                 amountAssetArr = amountAsset.Split(' ');
                 if (amountAssetArr.Length != 2)
@@ -549,7 +549,8 @@ namespace gxclient
                         account = fromAccount.Id,
                         contract_id = contract.Id,
                         method_name = method,
-                        data = await SerializeContractParams(contractName, method, parameters)
+                        data = await SerializeContractParams(contractName, method, parameters),
+                        extensions = new object[] { }
                     })
                 };
             }
@@ -561,11 +562,12 @@ namespace gxclient
                     Payload = JObject.FromObject(new
                     {
                         fee = new { asset_id = feeAssetId, amount = 0 },
-                        amount = new {asset_id = asset.Id, amount},
+                        amount = new {asset_id = asset.Id, amount = (UInt32)(amount * Math.Pow(10, asset.Precision)) },
                         account = fromAccount.Id,
                         contract_id = contract.Id,
                         method_name = method,
-                        data = await SerializeContractParams(contractName, method, parameters)
+                        data = await SerializeContractParams(contractName, method, parameters),
+                        extensions = new object[] { }
                     })
                 };
             }

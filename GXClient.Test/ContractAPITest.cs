@@ -41,13 +41,17 @@ namespace GXClient.Test
         }
 
         [TestMethod]
+        public async Task GetTableObjects()
+        {
+            var result = await Client.GetTableObjects("redpacket", "packet", 0, 5, true);
+            Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+        }
+
+        [TestMethod]
         public async Task CallContract()
         {
-            TransactionResult result = await Client.CallContract("redpacket", "issue", new
-            {
-                pubkey = "GXC5NEGqM8BTnMm5NT7Vv2Shxh4eg4tk1kfmAUf3EGHtksig5vZdN",
-                number = 3
-            }, "30 GXC", "GXC", false);
+            TransactionResult result = await Client.CallContract("bank", "deposit", new
+            {}, "10 GXC", "GXC", true);
             Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
         }
 
