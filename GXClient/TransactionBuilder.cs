@@ -136,8 +136,9 @@ namespace gxclient
         {
             DynamicGlobalProperties dgp = await RPC.Query<DynamicGlobalProperties>("get_dynamic_global_properties", null);
             this.expiration = dgp.Time.AddSeconds(DEFAULT_EXPIRE_SECONDS);
-            this.ref_block_num = (UInt16)(dgp.HeadBlockNumber & 0xFFFF);
-            string ref_block_prefix_str = dgp.HeadBlockId.Substring(14, 2) + dgp.HeadBlockId.Substring(12, 2) + dgp.HeadBlockId.Substring(10, 2) + dgp.HeadBlockId.Substring(8, 2);
+            this.ref_block_num = (UInt16)(dgp.LastIrreversibleBlockNum & 0xFFFF);
+            Block block = await RPC.Query<Block>("get_block", new object[] { dgp.LastIrreversibleBlockNum });
+            string ref_block_prefix_str = block.BlockId.Substring(14, 2) + block.BlockId.Substring(12, 2) + block.BlockId.Substring(10, 2) + block.BlockId.Substring(8, 2);
             this.ref_block_prefix = UInt32.Parse(ref_block_prefix_str, System.Globalization.NumberStyles.HexNumber);
             return await Task.FromResult<bool>(true);
         }
