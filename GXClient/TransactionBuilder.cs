@@ -52,7 +52,7 @@ namespace gxclient
 
         private readonly string ChainId;
 
-        private const int DEFAULT_EXPIRE_SECONDS = 15;
+        private const int DEFAULT_EXPIRE_SECONDS = 120;
 
         #region constructor
         public TransactionBuilder(GXRPC rpc, ISignatureProvider provider, string chainId)
