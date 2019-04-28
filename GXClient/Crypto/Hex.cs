@@ -76,6 +76,7 @@ namespace gxclient.Crypto
             foreach (byte b in bytes)
             {
                 hex.Append(_byteToHex[b]);
+                //hex.AppendFormat("{0:X2}", b);
             }
 
             return hex.ToString();

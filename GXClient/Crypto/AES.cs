@@ -16,7 +16,6 @@ namespace gxclient.Crypto
             byte[] nonceBytes = Encoding.UTF8.GetBytes("" + nonce);
             byte[] seed = nonceBytes.Concat(sharedSecretUTF8Bytes).ToArray();
             string hash = Hex.BytesToHex(Hash.SHA512(seed));
-            Console.WriteLine(hash);
             byte[] key = Hex.HexToBytes(hash.Substring(0, 64));
             byte[] iv = Hex.HexToBytes(hash.Substring(64, 32));
             byte[] encodedMsg = Encoding.UTF8.GetBytes(message);
@@ -35,7 +34,7 @@ namespace gxclient.Crypto
             string hash = Hex.BytesToHex(Hash.SHA512(seed));
             byte[] key = Hex.HexToBytes(hash.Substring(0, 64));
             byte[] iv = Hex.HexToBytes(hash.Substring(64, 32));
-            byte[] decryptedMsg = Encoding.UTF8.GetBytes(DecryptStringFromBytes(payload, key, iv));
+            byte[] decryptedMsg = DecryptStringFromBytes(payload, key, iv);
             byte[] checksum = decryptedMsg.Take(4).ToArray();
             byte[] message = decryptedMsg.Skip(4).ToArray();
             byte[] newChecksum = Hash.SHA256(message).Take(4).ToArray();
@@ -87,7 +86,7 @@ namespace gxclient.Crypto
 
         }
 
-        static string DecryptStringFromBytes(byte[] cipherText, byte[] Key, byte[] IV)
+        static byte[] DecryptStringFromBytes(byte[] cipherText, byte[] Key, byte[] IV)
         {
             // Check arguments.
             if (cipherText == null || cipherText.Length <= 0)
@@ -99,7 +98,7 @@ namespace gxclient.Crypto
 
             // Declare the string used to hold
             // the decrypted text.
-            string plaintext = null;
+            byte[] resultArray = null;
 
             // Create an AesCryptoServiceProvider object
             // with the specified key and IV.
@@ -111,23 +110,28 @@ namespace gxclient.Crypto
                 // Create a decryptor to perform the stream transform.
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
+                resultArray = decryptor.TransformFinalBlock(cipherText, 0, cipherText.Length);
+
+                //Console.WriteLine(Hex.BytesToHex(resultArray));
+
+                //plaintext = Encoding.UTF8.GetString(resultArray);
+
                 // Create the streams used for decryption.
-                using (MemoryStream msDecrypt = new MemoryStream(cipherText))
-                {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                        {
-                            // Read the decrypted bytes from the decrypting stream
-                            // and place them in a string.
-                            plaintext = srDecrypt.ReadToEnd();
-                        }
-                    }
-                }
+                //using (MemoryStream msDecrypt = new MemoryStream(cipherText))
+                //{
+                //    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                //    {
+                //        using (StreamReader srDecrypt = new StreamReader(csDecrypt,Encoding.UTF8))
+                //        {
+                //            // Read the decrypted bytes from the decrypting stream
+                //            // and place them in a string.
+                //            plaintext = srDecrypt.ReadToEnd();
+                //        }
+                //    }
+                //}
 
             }
-
-            return plaintext;
+            return resultArray;
 
         }
     }

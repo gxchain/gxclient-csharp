@@ -88,5 +88,14 @@ namespace GXClient.Test
             Console.WriteLine(decryptedMsg);
             Assert.AreEqual(message, decryptedMsg);
         }
+        [TestMethod]
+        public void MemoEncryptDecrypt2()
+        {
+            string message = "hi你好"; // including special charactors
+            var msg = "d504585e9d604bcf24a2ce19c220e5f7";
+            string decryptedMsg = AES.DecryptWithChecksum(PrivateKey.FromWif("5J7Yu8zZD5oV9Ex7npmsT3XBbpSdPZPBKBzLLQnXz5JHQVQVfNT"), PublicKey.FromString("GXC8H1wXTAUWcTtogBmA5EW8TUWLA6T1kAXwMKYtnNuqAe1VCXFD9"), 398450244318460L, Hex.HexToBytes(msg));
+            Console.WriteLine(decryptedMsg);
+            Assert.AreEqual(message, decryptedMsg);
+        }
     }
 }
