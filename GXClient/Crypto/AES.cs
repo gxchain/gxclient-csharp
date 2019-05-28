@@ -20,9 +20,8 @@ namespace gxclient.Crypto
             byte[] iv = Hex.HexToBytes(hash.Substring(64, 32));
             byte[] encodedMsg = Encoding.UTF8.GetBytes(message);
             byte[] checksum = Hash.SHA256(encodedMsg).Take(4).ToArray();
-            string payload = Encoding.UTF8.GetString(checksum.Concat(encodedMsg).ToArray());
 
-            return EncryptStringToBytes(payload, key, iv);
+            return EncryptStringToBytes(checksum.Concat(encodedMsg).ToArray(), key, iv);
         }
 
         public static string DecryptWithChecksum(PrivateKey privateKey, PublicKey publicKey, UInt64 nonce, byte[] payload)
@@ -45,15 +44,8 @@ namespace gxclient.Crypto
             return Encoding.UTF8.GetString(message);
         }
 
-        static byte[] EncryptStringToBytes(string plainText, byte[] Key, byte[] IV)
+        static byte[] EncryptStringToBytes(byte[] payload, byte[] Key, byte[] IV)
         {
-            // Check arguments.
-            if (string.IsNullOrEmpty(plainText))
-                throw new ArgumentNullException(nameof(plainText));
-            if (Key == null || Key.Length <= 0)
-                throw new ArgumentNullException(nameof(Key));
-            if (IV == null || IV.Length <= 0)
-                throw new ArgumentNullException(nameof(IV));
             byte[] encrypted;
 
             // Create an AesCryptoServiceProvider object
@@ -66,19 +58,21 @@ namespace gxclient.Crypto
                 // Create an encryptor to perform the stream transform.
                 ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
 
-                // Create the streams used for encryption.
-                using (MemoryStream msEncrypt = new MemoryStream())
-                {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                    {
-                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
-                        {
-                            //Write all data to the stream.
-                            swEncrypt.Write(plainText);
-                        }
-                        encrypted = msEncrypt.ToArray();
-                    }
-                }
+                encrypted = encryptor.TransformFinalBlock(payload, 0, payload.Length);
+
+                //// Create the streams used for encryption.
+                //using (MemoryStream msEncrypt = new MemoryStream())
+                //{
+                //    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                //    {
+                //        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+                //        {
+                //            //Write all data to the stream.
+                //            swEncrypt.Write(plainText);
+                //        }
+                //        encrypted = msEncrypt.ToArray();
+                //    }
+                //}
             }
 
             // Return the encrypted bytes from the memory stream.
