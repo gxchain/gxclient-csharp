@@ -253,3 +253,44 @@ public async Task<string> SerializeContractParams(string contractName, string me
 /// <param name="broadcast">If set to <c>true</c> broadcast.</param>
 public async Task<TransactionResult> CallContract(string contractName, string method, object parameters, string amountAsset, string feeAsset="GXC", bool broadcast= false)
 ```
+
+## Staking API
+
+```c#
+/// <summary>
+/// Get staking programs
+/// </summary>
+/// <returns>Staking programs</returns>
+public async Task<JArray> GetStakingPrograms()
+  
+/// <summary>
+/// create staking
+/// </summary>
+/// <param name="to">trust node account name</param>
+/// <param name="amount">amount of GXC to staking</param>
+/// <param name="programId">staking program id</param>
+/// <param name="feeAsset">asset used to pay transaction fee</param>
+/// <param name="broadcast">boradcast or not</param>
+/// <returns></returns>
+public async Task<TransactionResult> CreateStaking(string to, float amount, string programId, string feeAsset = "GXC", bool broadcast = false)
+  
+/// <summary>
+/// update staking by <paramref name="stakingId"/>
+/// </summary>
+/// <param name="to">new trust node account name</param>
+/// <param name="stakingId">staking id</param>
+/// <param name="feeAsset">asset used to pay transaction fee</param>
+/// <param name="broadcast">broadcast or not</param>
+/// <returns></returns>
+public async Task<TransactionResult> UpdateStaking(string to, string stakingId, string feeAsset = "GXC", bool broadcast = false)
+  
+/// <summary>
+/// claim staking by <paramref name="stakingId"/>
+/// </summary>
+/// <param name="stakingId">staking id</param>
+/// <param name="feeAsset">the asset used to pay transaction fee</param>
+/// <param name="broadcast">broadcast or not</param>
+/// <returns></returns>
+public async Task<TransactionResult> ClaimStaking(string stakingId, string feeAsset = "GXC", bool broadcast = false)
+```
+
