@@ -577,6 +577,17 @@ namespace gxclient
 
         #endregion
 
+        #region staking apis
+
+        public async Task<JArray> GetStakingPrograms()
+        {
+            JObject globalParams = await this.GetObject("2.0.0");
+            JArray stakingPrograms = globalParams["parameters"]["extensions"].ToList().Find(x => { return "11".Equals(x[0].ToObject<string>()); }).ToObject<JArray>();
+            return stakingPrograms[1]["params"].ToObject<JArray>();
+        }
+
+        #endregion
+
         #region private methods
         private async Task<TransactionBuilder> CreateTransactionBuilder()
         {
