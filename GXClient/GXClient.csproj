@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://github.com/gxchain/gxclient-csharp</PackageProjectUrl>
     <Title>GXClient</Title>
     <Description>A client to interact with gxchain implemented in C#</Description>
-    <PackageVersion>1.4</PackageVersion>
+    <PackageVersion>1.5</PackageVersion>
     <PackageIconUrl>https://www.gxchain.org/gxchain.org.png</PackageIconUrl>
     <PackageReleaseNotes>A client to interact with gxchain implemented in C#</PackageReleaseNotes>
     <Summary>A client to interact with gxchain implemented in C#</Summary>
