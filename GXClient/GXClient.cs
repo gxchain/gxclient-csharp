@@ -311,7 +311,7 @@ namespace gxclient
             {
                 throw new Exception("invalid amount asset, a valid example is \"100 GXC\"");
             }
-            UInt64 amount = UInt64.Parse(amountAssetArr[0]);
+            float amount = float.Parse(amountAssetArr[0]);
             var asset = (await GetAsset(amountAssetArr[1]));
             var feeAssetId = string.IsNullOrEmpty(feeAsset) ? asset.Id : (await GetAsset(feeAsset)).Id;
 
@@ -522,9 +522,8 @@ namespace gxclient
             Account contract = await GetAccount(contractName);
             Account fromAccount = await GetAccount(this.AccountName);
             string[] amountAssetArr = null;
-            UInt64 amount = 0L;
+            float amount = 0.0f;
             Asset asset = null;
-            string feeAssetSymbol = feeAsset;
             if (!string.IsNullOrEmpty(amountAsset))
             {
                 amountAssetArr = amountAsset.Split(' ');
@@ -532,7 +531,7 @@ namespace gxclient
                 {
                     throw new Exception("invalid amount asset, a valid example is \"100 GXC\"");
                 }
-                amount = UInt64.Parse(amountAssetArr[0]);
+                amount = float.Parse(amountAssetArr[0]);
                 asset = (await GetAsset(amountAssetArr[1]));
             }
             var feeAssetId = string.IsNullOrEmpty(feeAsset) ? (asset==null?"1.3.1":asset.Id) : (await GetAsset(feeAsset)).Id;
@@ -579,11 +578,139 @@ namespace gxclient
 
         #region staking apis
 
+        /// <summary>
+        /// Get staking programs
+        /// </summary>
+        /// <returns>Staking programs</returns>
         public async Task<JArray> GetStakingPrograms()
         {
             JObject globalParams = await this.GetObject("2.0.0");
             JArray stakingPrograms = globalParams["parameters"]["extensions"].ToList().Find(x => { return "11".Equals(x[0].ToObject<string>()); }).ToObject<JArray>();
             return stakingPrograms[1]["params"].ToObject<JArray>();
+        }
+
+        /// <summary>
+        /// create staking
+        /// </summary>
+        /// <param name="to">trust node account name</param>
+        /// <param name="amount">amount of GXC to staking</param>
+        /// <param name="programId">staking program id</param>
+        /// <param name="feeAsset">asset used to pay transaction fee</param>
+        /// <param name="broadcast">boradcast or not</param>
+        /// <returns></returns>
+        public async Task<TransactionResult> CreateStaking(string to, float amount, string programId, string feeAsset = "GXC", bool broadcast = false)
+        {
+            var feeAssetId = string.IsNullOrEmpty(feeAsset) ? "1.3.1" : (await GetAsset(feeAsset)).Id;
+            var ownerAccount = await GetAccount(this.AccountName);
+            var trustNodeAccount = await GetAccount(to);
+            if (trustNodeAccount == null)
+            {
+                throw new Exception($"Account {to} not exist");
+            }
+            var trustNodeInfo = await Query<JObject>("get_witness_by_account", new string[] { trustNodeAccount.Id });
+            if (trustNodeInfo == null)
+            {
+                throw new Exception($"Account {to} is not a trust node");
+            }
+            var programs = await this.GetStakingPrograms();
+            JToken programRef = programs.ToList().Find(x => x[0].ToString().Equals(programId));
+            if (programRef == null || !programRef[1]["is_valid"].ToObject<Boolean>())
+            {
+                throw new Exception($"Invalid program id {programId}");
+            }
+            else
+            {
+                
+                UInt32 weight = programRef[1]["weight"].ToObject<UInt32>();
+                UInt32 staking_days = programRef[1]["staking_days"].ToObject<UInt32>();
+                var op = new Operation()
+                {
+                    OperationID = 80,
+                    
+                    Payload = JObject.FromObject(new
+                    {
+                        fee = new { asset_id = feeAssetId, amount = 0 },
+                        amount = new { asset_id = "1.3.1", amount = (UInt32)(amount * Math.Pow(10, 5)) },
+                        owner = ownerAccount.Id,
+                        trust_node = trustNodeInfo["id"].ToObject<string>(),
+                        program_id = programId,
+                        weight,
+                        staking_days,
+                        extensions = new object[] { }
+                    })
+                };
+                TransactionBuilder transactionBuilder = await CreateTransactionBuilder();
+                transactionBuilder.AddOperation(op);
+                return await transactionBuilder.ProcessTransaction(broadcast);
+            }
+        }
+
+        /// <summary>
+        /// update staking by <paramref name="stakingId"/>
+        /// </summary>
+        /// <param name="to">new trust node account name</param>
+        /// <param name="stakingId">staking id</param>
+        /// <param name="feeAsset">asset used to pay transaction fee</param>
+        /// <param name="broadcast">broadcast or not</param>
+        /// <returns></returns>
+        public async Task<TransactionResult> UpdateStaking(string to, string stakingId, string feeAsset = "GXC", bool broadcast = false)
+        {
+            var feeAssetId = string.IsNullOrEmpty(feeAsset) ? "1.3.1" : (await GetAsset(feeAsset)).Id;
+            var ownerAccount = await GetAccount(this.AccountName);
+            var trustNodeAccount = await GetAccount(to);
+            if (trustNodeAccount == null)
+            {
+                throw new Exception($"Account {to} not exist");
+            }
+            var trustNodeInfo = await Query<JObject>("get_witness_by_account", new string[] { trustNodeAccount.Id });
+            if (trustNodeInfo == null)
+            {
+                throw new Exception($"Account {to} is not a trust node");
+            }
+            var op = new Operation()
+            {
+                OperationID = 81,
+
+                Payload = JObject.FromObject(new
+                {
+                    fee = new { asset_id = feeAssetId, amount = 0 },
+                    owner = ownerAccount.Id,
+                    trust_node = trustNodeInfo["id"].ToObject<string>(),
+                    staking_id = stakingId,
+                    extensions = new object[] { }
+                })
+            };
+            TransactionBuilder transactionBuilder = await CreateTransactionBuilder();
+            transactionBuilder.AddOperation(op);
+            return await transactionBuilder.ProcessTransaction(broadcast);
+        }
+
+        /// <summary>
+        /// claim staking by <paramref name="stakingId"/>
+        /// </summary>
+        /// <param name="stakingId">staking id</param>
+        /// <param name="feeAsset">the asset used to pay transaction fee</param>
+        /// <param name="broadcast">broadcast or not</param>
+        /// <returns></returns>
+        public async Task<TransactionResult> ClaimStaking(string stakingId, string feeAsset = "GXC", bool broadcast = false)
+        {
+            var feeAssetId = string.IsNullOrEmpty(feeAsset) ? "1.3.1" : (await GetAsset(feeAsset)).Id;
+            var ownerAccount = await GetAccount(this.AccountName);
+            var op = new Operation()
+            {
+                OperationID = 82,
+
+                Payload = JObject.FromObject(new
+                {
+                    fee = new { asset_id = feeAssetId, amount = 0 },
+                    owner = ownerAccount.Id,
+                    staking_id = stakingId,
+                    extensions = new object[] { }
+                })
+            };
+            TransactionBuilder transactionBuilder = await CreateTransactionBuilder();
+            transactionBuilder.AddOperation(op);
+            return await transactionBuilder.ProcessTransaction(broadcast);
         }
 
         #endregion
